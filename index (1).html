@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Vishal — Interactive 3D Portfolio</title>
+<meta name="description" content="Walk through Vishal's portfolio as a blocky voxel villa — enter through the main door, meet Vishal, and open doors for About, Skills, Projects, Experience and Contact." />
+<meta name="theme-color" content="#1c130d" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%231c130d'/%3E%3Ctext x='50' y='68' font-size='58' font-family='monospace' font-weight='700' fill='%23c9a227' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c130d; --panel:#241a12; --line:rgba(201,162,39,0.28);
+    --accent:#c9a227; --accent-2:#8b3a3a; --ok:#7fae6a;
+    --text:#f3e9d8; --text-dim:#b8a583;
+    --mono:'JetBrains Mono', monospace; --display:'Cormorant Garamond', serif; --body:'Inter', sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{ height:100%; overflow:hidden; background:var(--ink); }
+  body{ font-family:var(--body); color:var(--text); }
+  #canvas-wrap{ position:fixed; inset:0; }
+  #canvas-wrap canvas{ display:block; touch-action:none; }
+
+  #loader{ position:fixed; inset:0; background:var(--ink); z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; transition:opacity .6s ease, visibility .6s ease; }
+  #loader.hide{ opacity:0; visibility:hidden; }
+  #loader svg{ width:76px; height:76px; }
+  #loader path{ fill:none; stroke:var(--accent); stroke-width:3; stroke-dasharray:340; stroke-dashoffset:340; animation:draw 1.1s ease forwards; }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+  #loader p{ font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--text-dim); }
+  .room-loading-bar{ width:180px; height:2px; background:var(--line); overflow:hidden; border-radius:2px; }
+  .room-loading-bar span{ display:block; width:40%; height:100%; background:var(--accent); animation:load-bar 1.1s ease infinite; }
+  @keyframes load-bar{ 0%{ transform:translateX(-100%);} 100%{ transform:translateX(350%);} }
+
+  header{ position:fixed; top:0; left:0; width:100%; z-index:50; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; pointer-events:none; }
+  header > *{ pointer-events:auto; }
+  .hidden{ display:none !important; }
+  .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; color:var(--text); background:rgba(28,19,13,0.78); backdrop-filter:blur(10px); border:1px solid var(--line); padding:8px 16px 8px 8px; border-radius:6px; }
+  .brand-mark{ width:32px; height:32px; border:1.5px solid var(--accent); border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:700; color:var(--accent); font-size:1.05rem; }
+  .brand-text{ font-family:var(--mono); font-size:.6rem; letter-spacing:.08em; color:var(--text-dim); text-transform:uppercase; line-height:1.4; }
+  .brand-text strong{ display:block; font-family:var(--display); font-size:1.15rem; color:var(--text); font-weight:700; text-transform:none; letter-spacing:.02em; }
+
+  #room-nav{ display:flex; gap:6px; background:rgba(28,19,13,0.78); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:8px; padding:6px; flex-wrap:wrap; }
+  .nav-btn{ font-family:var(--mono); font-size:.66rem; letter-spacing:.04em; text-transform:uppercase; color:var(--text-dim); background:transparent; border:1px solid transparent; padding:8px 12px; border-radius:5px; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all .2s ease; }
+  .nav-btn i{ font-size:.85rem; }
+  .nav-btn:hover{ color:var(--text); border-color:var(--line); }
+  .nav-btn.active{ background:var(--accent); color:#241a12; }
+
+  .top-actions{ display:flex; gap:8px; }
+  .icon-btn{ width:38px; height:38px; border-radius:6px; border:1px solid var(--line); background:rgba(28,19,13,0.78); backdrop-filter:blur(10px); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .2s ease; font-size:.85rem; text-decoration:none; }
+  .icon-btn:hover{ border-color:var(--accent); color:var(--accent); }
+
+  #hint{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:40; font-family:var(--mono); font-size:.7rem; letter-spacing:.05em; color:var(--text-dim); background:rgba(28,19,13,0.78); backdrop-filter:blur(10px); border:1px solid var(--line); padding:10px 18px; border-radius:20px; display:flex; align-items:center; gap:10px; transition:opacity .5s ease, visibility .5s ease; text-align:center; }
+  #hint.hidden{ opacity:0; visibility:hidden; }
+  #hint i{ color:var(--accent); }
+
+  #pre-entry{ position:fixed; inset:0; z-index:45; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:9vh; pointer-events:none; opacity:0; transition:opacity .8s ease, visibility .8s ease; }
+  #pre-entry.show{ opacity:1; pointer-events:auto; }
+  #pre-entry.hidden{ opacity:0 !important; visibility:hidden; pointer-events:none; }
+  #pre-entry .gate-card{ pointer-events:auto; text-align:center; background:rgba(28,19,13,0.82); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:10px; padding:26px 34px; max-width:420px; }
+  #pre-entry h1{ font-family:var(--display); font-size:2rem; font-weight:700; margin-bottom:8px; }
+  #pre-entry p{ font-family:var(--body); font-size:.88rem; color:var(--text-dim); margin-bottom:18px; line-height:1.55; }
+  #enter-btn{ font-family:var(--mono); font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; background:var(--accent); color:#241a12; border:none; padding:14px 30px; border-radius:5px; cursor:pointer; display:inline-flex; align-items:center; gap:10px; transition:transform .2s ease, background .2s ease; }
+  #enter-btn:hover{ transform:translateY(-2px); background:#e0b830; }
+
+  #panel-overlay{ position:fixed; inset:0; background:rgba(10,7,4,0.5); backdrop-filter:blur(2px); z-index:60; opacity:0; visibility:hidden; transition:opacity .35s ease, visibility .35s ease; }
+  #panel-overlay.show{ opacity:1; visibility:visible; }
+
+  #room-panel{
+    position:fixed; top:0; right:0; height:100%; width:min(440px, 92vw); background:var(--panel);
+    border-left:1px solid var(--line); z-index:70; transform:translateX(100%); transition:transform .4s cubic-bezier(.22,1,.36,1);
+    overflow-y:auto; padding:30px 30px 60px;
+  }
+  #room-panel.show{ transform:translateX(0); }
+  #panel-close{ position:absolute; top:20px; right:20px; width:36px; height:36px; border-radius:6px; border:1px solid var(--line); background:transparent; color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s ease; }
+  #panel-close:hover{ color:var(--accent); border-color:var(--accent); }
+
+  .panel-eyebrow{ font-family:var(--mono); font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:9px; margin-bottom:12px; margin-top:6px; }
+  .panel-eyebrow::before{ content:''; width:20px; height:1px; background:var(--accent); }
+  #panel-title{ font-family:var(--display); font-size:2rem; font-weight:700; margin-bottom:18px; padding-right:40px; }
+  .panel-body p{ color:var(--text-dim); line-height:1.7; font-size:.94rem; margin-bottom:14px; }
+  .panel-body strong{ color:var(--text); }
+
+  .pill-row{ display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 18px; }
+  .pill-row span{ font-family:var(--mono); font-size:.66rem; padding:5px 11px; border:1px solid var(--line); border-radius:20px; color:var(--text-dim); }
+
+  .stat-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:20px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:16px 0; }
+  .stat-row div strong{ display:block; font-family:var(--display); font-size:1.5rem; color:var(--accent); }
+  .stat-row div span{ font-family:var(--mono); font-size:.58rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); }
+
+  .skill-block{ margin-bottom:20px; }
+  .skill-block h4{ font-family:var(--display); font-size:1.1rem; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+  .skill-block h4 i{ color:var(--accent); }
+  .bar-track{ height:5px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden; margin-top:8px; }
+  .bar-fill{ height:100%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); width:0; transition:width 1.1s ease; }
+
+  .proj-card{ border:1px solid var(--line); border-radius:6px; padding:18px; margin-bottom:14px; }
+  .proj-card h4{ font-family:var(--display); font-size:1.15rem; font-weight:700; margin-bottom:8px; }
+  .proj-card p{ font-size:.86rem; color:var(--text-dim); line-height:1.6; margin-bottom:10px; }
+  .proj-links{ display:flex; gap:16px; }
+  .proj-links a{ font-family:var(--mono); font-size:.72rem; color:var(--text); text-decoration:none; display:flex; align-items:center; gap:6px; border-bottom:1px solid transparent; }
+  .proj-links a:hover{ color:var(--accent); border-color:var(--accent); }
+
+  .tl-block{ position:relative; padding-left:26px; margin-bottom:18px; }
+  .tl-block::before{ content:''; position:absolute; left:4px; top:4px; width:9px; height:9px; border-radius:50%; border:2px solid var(--accent); background:var(--panel); }
+  .tl-block::after{ content:''; position:absolute; left:8px; top:16px; bottom:-18px; width:1px; background:var(--line); }
+  .tl-block:last-child::after{ display:none; }
+  .tl-tag{ font-family:var(--mono); font-size:.63rem; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; }
+  .tl-block h4{ font-family:var(--display); font-size:1.1rem; font-weight:700; margin:4px 0 4px; }
+  .tl-block p{ font-size:.85rem; color:var(--text-dim); line-height:1.55; }
+
+  .contact-row{ display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--line); text-decoration:none; color:var(--text); transition:padding-left .2s ease; }
+  .contact-row:hover{ padding-left:6px; color:var(--accent); }
+  .contact-row i{ width:32px; height:32px; border:1px solid var(--line); border-radius:5px; display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:.85rem; flex-shrink:0; }
+  .contact-row span{ display:block; font-family:var(--mono); font-size:.6rem; text-transform:uppercase; letter-spacing:.07em; color:var(--text-dim); margin-bottom:2px; }
+
+  .about-photo{ width:100%; border-radius:6px; border:1px solid var(--line); margin-bottom:18px; filter:sepia(.18) contrast(1.02); }
+
+  .bot-quote{ border-left:3px solid var(--accent); padding-left:16px; font-family:var(--display); font-size:1.3rem; font-style:italic; line-height:1.5; margin:16px 0 22px; color:var(--text); }
+
+  @media(max-width:640px){
+    header{ flex-direction:column; align-items:stretch; gap:10px; }
+    #room-nav{ justify-content:space-between; }
+    .nav-btn span{ display:none; }
+    .brand{ align-self:flex-start; }
+    #pre-entry{ padding-bottom:6vh; }
+    #pre-entry .gate-card{ max-width:88vw; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <svg viewBox="0 0 100 100"><path d="M20 20 L20 80 L50 80 L50 50 L80 50 L80 20"/></svg>
+  <p>Stacking the blocks…</p>
+  <div class="room-loading-bar"><span></span></div>
+</div>
+
+<div id="canvas-wrap"></div>
+
+<header>
+  <a href="#" class="brand" id="brand-reset">
+    <div class="brand-mark">V</div>
+    <div class="brand-text">Casa Vishal<strong>Portfolio</strong></div>
+  </a>
+  <div id="room-nav" class="hidden">
+    <button class="nav-btn" data-room="about"><i class="fas fa-user"></i><span>About</span></button>
+    <button class="nav-btn" data-room="skills"><i class="fas fa-toolbox"></i><span>Skills</span></button>
+    <button class="nav-btn" data-room="projects"><i class="fas fa-diagram-project"></i><span>Projects</span></button>
+    <button class="nav-btn" data-room="experience"><i class="fas fa-briefcase"></i><span>Experience</span></button>
+    <button class="nav-btn" data-room="contact"><i class="fas fa-envelope"></i><span>Contact</span></button>
+  </div>
+  <div class="top-actions hidden" id="top-actions">
+    <button class="icon-btn" id="daynight-toggle" aria-label="Toggle day and night"><i class="fas fa-moon"></i></button>
+    <a class="icon-btn" href="resume.pdf" download aria-label="Download resume"><i class="fas fa-arrow-down"></i></a>
+    <button class="icon-btn" id="exit-btn" aria-label="Exit the villa"><i class="fas fa-right-from-bracket"></i></button>
+  </div>
+</header>
+
+<div id="pre-entry">
+  <div class="gate-card">
+    <h1>Casa Vishal</h1>
+    <p>A little voxel villa, built as a portfolio. Push the main door open, cross the courtyard, and Vishal — its blocky caretaker — will show you around.</p>
+    <button id="enter-btn"><i class="fas fa-door-open"></i> Enter the Villa</button>
+  </div>
+</div>
+
+<div id="hint" class="hidden"><i class="fas fa-hand-pointer"></i> Drag to look, scroll to zoom, WASD to walk · Click a door or Vishal · Exit via the top-right button</div>
+
+<div id="panel-overlay"></div>
+<aside id="room-panel">
+  <button id="panel-close" aria-label="Close"><i class="fas fa-xmark"></i></button>
+  <div class="panel-eyebrow" id="panel-eyebrow">Room</div>
+  <h2 id="panel-title">Title</h2>
+  <div class="panel-body" id="panel-body"></div>
+</aside>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+
+  /* ================= CONTENT ================= */
+  const CONTENT = {
+    vishal: {
+      icon:'fa-robot', label:'Vishal',
+      render: () => `
+        <p class="bot-quote">"Welcome to Casa Vishal. Every room here holds a piece of the person who built it — go on, open a door."</p>
+        <p>I'm the villa's little voxel caretaker — built, quite literally, to represent <strong>Vishal</strong>: a Full Stack Developer from India finishing a <strong>B.Tech in Information Technology</strong>.</p>
+        <p>Wander the courtyard (WASD or drag to look) and open the five doors around you: <strong>About, Skills, Projects, Experience</strong> and <strong>Contact</strong>. Each one is a real room with real information — no filler.</p>
+        <div class="stat-row">
+          <div><strong>2+</strong><span>Years Exp.</span></div>
+          <div><strong>10+</strong><span>Clients</span></div>
+          <div><strong>3</strong><span>Shipped Apps</span></div>
+        </div>`
+    },
+    about: {
+      icon:'fa-user', label:'About Me',
+      render: () => `
+        <img src="dp.png" alt="Vishal" class="about-photo">
+        <p>I'm <strong>Vishal</strong>, a Full Stack Developer from India, currently completing a <strong>B.Tech in Information Technology</strong> (specialization in Software Development, CGPA 7.7/10).</p>
+        <p>I enjoy turning ambiguous problems into clean, working software — comfortable across the stack, from database schema to the pixel on screen.</p>
+        <div class="stat-row">
+          <div><strong>2+</strong><span>Years Exp.</span></div>
+          <div><strong>10+</strong><span>Clients</span></div>
+          <div><strong>3</strong><span>Shipped Apps</span></div>
+        </div>
+        <p>Open-source contributor, continuous learner, and always up for a hard problem.</p>`
+    },
+    skills: {
+      icon:'fa-toolbox', label:'Skills',
+      render: () => `
+        <p>Technologies I reach for day to day, roughly ranked by comfort level.</p>
+        ${skillBlock('fa-html5','Frontend','HTML5 · CSS3 · JavaScript · React · Vue.js',90)}
+        ${skillBlock('fa-server','Backend','Node.js · Express · Python · MongoDB',85)}
+        ${skillBlock('fa-mobile-alt','Mobile','React Native · Flutter · PWA',75)}
+        ${skillBlock('fa-tools','Tools & Infra','Git · Docker · AWS · Firebase · Figma',80)}`
+    },
+    projects: {
+      icon:'fa-diagram-project', label:'Projects',
+      render: () => `
+        <p>A few recent builds — swap the links for your real repos and live URLs.</p>
+        ${projectCard('E-Commerce Platform','Full-stack e-commerce solution with auth, Stripe payments and an admin dashboard.',['React','Node.js','MongoDB','Stripe'])}
+        ${projectCard('Task Management App','Collaborative task manager with real-time updates and team features.',['Vue.js','Socket.io','Express','PostgreSQL'])}
+        ${projectCard('Analytics Dashboard','Data visualization dashboard with interactive charts and exportable reports.',['React','D3.js','Python','FastAPI'])}`
+    },
+    experience: {
+      icon:'fa-briefcase', label:'Experience',
+      render: () => `
+        <div class="tl-block"><span class="tl-tag">Internship</span><h4>TechCorp Solutions</h4><p>Frontend & backend development across live client projects.</p></div>
+        <div class="tl-block"><span class="tl-tag">Freelance</span><h4>Independent Full Stack Work</h4><p>Delivered projects for 10+ clients — e-commerce, dashboards, internal tools.</p></div>
+        <div class="tl-block"><span class="tl-tag">Education</span><h4>B.Tech, Information Technology</h4><p>Specialization in Software Development · CGPA 7.7/10</p></div>
+        <div class="tl-block"><span class="tl-tag">Now</span><h4>Open to new roles</h4><p>Looking for a full-stack or frontend-leaning engineering position.</p></div>`
+    },
+    contact: {
+      icon:'fa-envelope', label:'Contact',
+      render: () => `
+        <p>Open to full-time roles, freelance work, and interesting problems.</p>
+        <a href="mailto:vishapandey21102004@gmail.com" class="contact-row"><i class="fas fa-envelope"></i><div><span>Email</span>vishapandey21102004@gmail.com</div></a>
+        <a href="https://linkedin.com/in/vishal-dev" target="_blank" rel="noopener" class="contact-row"><i class="fab fa-linkedin"></i><div><span>LinkedIn</span>linkedin.com/in/vishal-dev</div></a>
+        <a href="https://github.com/vishal-dev" target="_blank" rel="noopener" class="contact-row"><i class="fab fa-github"></i><div><span>GitHub</span>github.com/vishal-dev</div></a>
+        <a href="tel:+91823051539" class="contact-row"><i class="fas fa-phone"></i><div><span>Phone</span>+91 823051539</div></a>`
+    }
+  };
+  function skillBlock(icon,title,tags,pct){
+    return `<div class="skill-block"><h4><i class="fas ${icon}"></i> ${title}</h4>
+      <div class="pill-row">${tags.split(' · ').map(t=>`<span>${t}</span>`).join('')}</div>
+      <div class="bar-track"><div class="bar-fill" data-pct="${pct}"></div></div></div>`;
+  }
+  function projectCard(title,desc,tags){
+    return `<div class="proj-card"><h4>${title}</h4><p>${desc}</p>
+      <div class="pill-row">${tags.map(t=>`<span>${t}</span>`).join('')}</div>
+      <div class="proj-links"><a href="#" target="_blank" rel="noopener"><i class="fab fa-github"></i> Code</a><a href="#" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Live</a></div></div>`;
+  }
+
+  /* ================= ROOM CONFIG (antique palette) ================= */
+  const roomsConfig = [
+    { id:'about',      label:'About',      wallColor:0xb97a63, color:0xe0a98f, plaques:['B.TECH · IT','CGPA 7.7'] },
+    { id:'skills',     label:'Skills',     wallColor:0x7c8b5f, color:0xacc084, plaques:['REACT','NODE.JS','PYTHON'] },
+    { id:'projects',   label:'Projects',   wallColor:0xa85a32, color:0xdb8a4c, plaques:['E-COMM','TASK APP','ANALYTICS'] },
+    { id:'experience', label:'Experience', wallColor:0xc99a3e, color:0xecc568, plaques:['TECHCORP','10+ CLIENTS','2+ YEARS'] },
+    { id:'contact',    label:'Contact',    wallColor:0x3f6b66, color:0x67ab9f, plaques:['SAY HELLO','OPEN TO WORK'] },
+  ];
+  const RADIUS = 11.5;
+  const OUTER_R = 16.2;
+  const WALL_H = 3.5;
+  const GATE_ANGLE = Math.PI/2;
+  const GATE_HALF = 0.19;
+
+  /* ================= THREE SETUP ================= */
+  const wrap = document.getElementById('canvas-wrap');
+  const scene = new THREE.Scene();
+  let night = true;
+  let entered = false;
+
+  const camera = new THREE.PerspectiveCamera(48, innerWidth/innerHeight, 0.1, 260);
+  const INTRO_POS = new THREE.Vector3(OUTER_R*1.7, 22, OUTER_R*1.3);
+  const INTRO_LOOK = new THREE.Vector3(0, 3, 0);
+  const EXTERIOR_POS = new THREE.Vector3(0, 9, OUTER_R+15);
+  const EXTERIOR_LOOK = new THREE.Vector3(0, 2.4, OUTER_R-1);
+  const DEFAULT_POS = new THREE.Vector3(0, 17, 27);
+  const DEFAULT_LOOK = new THREE.Vector3(0, 1, 0);
+  camera.position.copy(INTRO_POS);
+
+  const renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  wrap.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 6;
+  controls.maxDistance = 55;
+  controls.maxPolarAngle = Math.PI/2.15;
+  controls.target.copy(INTRO_LOOK);
+  controls.enableZoom = false; // scroll/zoom is disabled outside — only unlocked once you step through the main gate
+  controls.update();
+
+  const hemi = new THREE.HemisphereLight(0xffdca8, 0x2a1f16, 0.55);
+  scene.add(hemi);
+
+  const sun = new THREE.DirectionalLight(0xffcf8a, 0.7);
+  sun.position.set(-18, 24, 14);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024,1024);
+  sun.shadow.camera.left = -30; sun.shadow.camera.right = 30;
+  sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30;
+  sun.shadow.camera.far = 70;
+  scene.add(sun); scene.add(sun.target);
+
+  const groundMat = new THREE.MeshStandardMaterial({ color:0x241a10, roughness:1 });
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(60, 48), groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  const courtyardMat = new THREE.MeshStandardMaterial({ color:0x6b5334, roughness:0.95 });
+  const courtyard = new THREE.Mesh(new THREE.CylinderGeometry(OUTER_R-0.4, OUTER_R-0.4, 0.05, 48), courtyardMat);
+  courtyard.position.y = 0.02; courtyard.receiveShadow = true;
+  scene.add(courtyard);
+
+  /* ---- blocky impluvium / fountain ---- */
+  const basinMat = new THREE.MeshStandardMaterial({ color:0x35281a, roughness:0.85 });
+  const hubBase = new THREE.Mesh(new THREE.BoxGeometry(6.6,0.3,6.6), basinMat);
+  hubBase.position.y = 0.16; hubBase.receiveShadow = true;
+  scene.add(hubBase);
+  const waterMat = new THREE.MeshStandardMaterial({ color:0x2f7a86, roughness:0.25, emissive:0x123a40, emissiveIntensity:0.35, transparent:true, opacity:0.88 });
+  const water = new THREE.Mesh(new THREE.BoxGeometry(5.7,0.08,5.7), waterMat);
+  water.position.y = 0.34;
+  scene.add(water);
+  const rimMat = new THREE.MeshStandardMaterial({ color:0xc9a227, roughness:0.4, metalness:0.4 });
+  [[-3.3,0],[3.3,0],[0,-3.3],[0,3.3]].forEach(([rx,rz])=>{
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.5,0.22), rimMat);
+    post.position.set(rx,0.4,rz); post.castShadow = true;
+    scene.add(post);
+  });
+
+  /* ---- outer courtyard wall with a main-door gap ---- */
+  const wallStoneMat = new THREE.MeshStandardMaterial({ color:0xd8c8a8, roughness:0.95 });
+  const outerWall = new THREE.Mesh(
+    new THREE.CylinderGeometry(OUTER_R, OUTER_R, WALL_H, 64, 1, true, GATE_ANGLE+GATE_HALF, Math.PI*2-GATE_HALF*2),
+    wallStoneMat
+  );
+  outerWall.position.y = WALL_H/2;
+  outerWall.receiveShadow = true; outerWall.castShadow = true;
+  scene.add(outerWall);
+
+  const cornice = new THREE.Mesh(new THREE.TorusGeometry(OUTER_R, 0.12, 8, 64), new THREE.MeshStandardMaterial({color:0xc9a227, roughness:0.4, metalness:0.4}));
+  cornice.rotation.x = Math.PI/2; cornice.position.y = WALL_H;
+  scene.add(cornice);
+
+  /* ---- blocky stepped roof (ziggurat, open skylight in the middle) ---- */
+  const stepRadii = [OUTER_R, 12.5, 9, 6.5];
+  const riserH = 0.65;
+  const roofMats = [0xa8552f, 0x944826, 0x7d3c1f].map(c=> new THREE.MeshStandardMaterial({ color:c, roughness:0.88 }));
+  for(let i=0;i<3;i++){
+    const outerRi = stepRadii[i], innerRi = stepRadii[i+1];
+    const yi = WALL_H + i*riserH;
+    const shelf = new THREE.Mesh(new THREE.RingGeometry(innerRi, outerRi, 64), roofMats[i]);
+    shelf.rotation.x = -Math.PI/2; shelf.position.y = yi;
+    shelf.castShadow = true; shelf.receiveShadow = true;
+    scene.add(shelf);
+    const riser = new THREE.Mesh(new THREE.CylinderGeometry(innerRi, innerRi, riserH, 64, 1, true), roofMats[i]);
+    riser.position.y = yi + riserH/2;
+    riser.castShadow = true;
+    scene.add(riser);
+  }
+
+  /* ---- colonnade columns (blocky pillars) around the wall, skipping the door ---- */
+  const colMat = new THREE.MeshStandardMaterial({ color:0xe4d6b6, roughness:0.85 });
+  const COL_COUNT = 20;
+  for(let i=0;i<COL_COUNT;i++){
+    const a = (i/COL_COUNT)*Math.PI*2;
+    let da = a - GATE_ANGLE;
+    da = Math.atan2(Math.sin(da), Math.cos(da));
+    if(Math.abs(da) < GATE_HALF+0.1) continue;
+    const cx = Math.cos(a)*(OUTER_R-0.2), cz = Math.sin(a)*(OUTER_R-0.2);
+    const col = new THREE.Mesh(new THREE.BoxGeometry(0.32,WALL_H,0.32), colMat);
+    col.position.set(cx, WALL_H/2, cz);
+    col.castShadow = true;
+    scene.add(col);
+  }
+
+  /* ---- main door portico: two pillars + urns flanking the entrance ---- */
+  const gateA = GATE_ANGLE - GATE_HALF, gateB = GATE_ANGLE + GATE_HALF;
+  [gateA-0.07, gateB+0.07].forEach(a=>{
+    const px = Math.cos(a)*(OUTER_R+0.3), pz = Math.sin(a)*(OUTER_R+0.3);
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.55, WALL_H+0.7, 0.55), colMat);
+    pillar.position.set(px, (WALL_H+0.7)/2, pz);
+    pillar.castShadow = true;
+    scene.add(pillar);
+  });
+  function createUrn(x,z){
+    const urnMat = new THREE.MeshStandardMaterial({ color:0xa8552f, roughness:0.8 });
+    const leafMat = new THREE.MeshStandardMaterial({ color:0x5a7a3f, roughness:0.85 });
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.42,0.5,0.42), urnMat); base.position.y = 0.25; base.castShadow = true; g.add(base);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(0.52,0.14,0.52), urnMat); top.position.y = 0.57; g.add(top);
+    const sprig = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.42,0.3), leafMat); sprig.position.y = 0.86; sprig.castShadow = true; g.add(sprig);
+    g.position.set(x,0,z);
+    scene.add(g);
+    return g;
+  }
+  createUrn(Math.cos(gateA)*(OUTER_R-1.4), Math.sin(gateA)*(OUTER_R-1.4));
+  createUrn(Math.cos(gateB)*(OUTER_R-1.4), Math.sin(gateB)*(OUTER_R-1.4));
+
+  /* ---- main door (single swinging leaf) ---- */
+  const hingePos = new THREE.Vector3(Math.cos(gateA)*OUTER_R, 0, Math.sin(gateA)*OUTER_R);
+  const farPos = new THREE.Vector3(Math.cos(gateB)*OUTER_R, 0, Math.sin(gateB)*OUTER_R);
+  const gapVec = farPos.clone().sub(hingePos);
+  const gateW = gapVec.length();
+  const gateYaw = Math.atan2(-gapVec.z, gapVec.x);
+
+  const gatePivot = new THREE.Group();
+  gatePivot.position.copy(hingePos);
+  gatePivot.rotation.y = gateYaw;
+  const gateDoorMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(gateW, WALL_H*0.86, 0.16),
+    new THREE.MeshStandardMaterial({ color:0x5b3d24, roughness:0.6, metalness:0.15, emissive:0x2a1a0c, emissiveIntensity:0.18 })
+  );
+  gateDoorMesh.position.set(gateW/2, WALL_H*0.43, 0);
+  gateDoorMesh.castShadow = true;
+  gatePivot.add(gateDoorMesh);
+  for(let i=0;i<3;i++){
+    const stud = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.1), new THREE.MeshStandardMaterial({color:0xc9a227, metalness:0.7, roughness:0.3}));
+    stud.position.set(gateW/2, WALL_H*0.86*(0.25+i*0.3), 0.09);
+    gatePivot.add(stud);
+  }
+  scene.add(gatePivot);
+  let gateOpen = false;
+
+  const gateMid = hingePos.clone().add(farPos).multiplyScalar(0.5);
+  const enterSign = makeTextSprite('ENTER', { fontSize:46, width:280, height:96, border:'#c9a227' });
+  enterSign.position.set(gateMid.x, WALL_H+1.1, gateMid.z);
+  scene.add(enterSign);
+
+  function animatePivot(pivot, fromY, toY, duration){
+    const t0 = performance.now();
+    function step(now){
+      const t = Math.min(1,(now-t0)/duration);
+      const e = 1-Math.pow(1-t,3);
+      pivot.rotation.y = fromY + (toY-fromY)*e;
+      if(t<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function openGate(){
+    if(gateOpen) return; gateOpen = true;
+    animatePivot(gatePivot, gatePivot.rotation.y, gateYaw-2.2, 1400);
+  }
+  function closeGate(){
+    if(!gateOpen) return; gateOpen = false;
+    animatePivot(gatePivot, gatePivot.rotation.y, gateYaw, 1400);
+  }
+
+  /* ---- blocky trees, dotted around the courtyard ---- */
+  function createTree(x,z){
+    const g = new THREE.Group();
+    const trunkMat = new THREE.MeshStandardMaterial({ color:0x5b3d24, roughness:0.9 });
+    const leafMat = new THREE.MeshStandardMaterial({ color:0x5a7a3f, roughness:0.9 });
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.32,1.1,0.32), trunkMat);
+    trunk.position.y = 0.55; trunk.castShadow = true; g.add(trunk);
+    for(let i=0;i<3;i++){
+      const s = 1.15-i*0.24;
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(s,0.5,s), leafMat);
+      leaf.position.y = 1.15+i*0.42; leaf.castShadow = true;
+      g.add(leaf);
+    }
+    g.position.set(x,0,z);
+    scene.add(g);
+    return g;
+  }
+  const treeSpots = [];
+  for(let i=0;i<5;i++){
+    const a = (i/5)*Math.PI*2 + Math.PI/5;
+    let da = a - GATE_ANGLE; da = Math.atan2(Math.sin(da), Math.cos(da));
+    if(Math.abs(da) < 0.5) continue;
+    treeSpots.push(createTree(Math.cos(a)*6.8, Math.sin(a)*6.8));
+  }
+
+  /* ---- drifting blocky clouds ---- */
+  const cloudMat = new THREE.MeshStandardMaterial({ color:0xf3ecd8, roughness:1 });
+  const clouds = [];
+  for(let i=0;i<7;i++){
+    const cg = new THREE.Group();
+    const n = 3 + Math.floor(Math.random()*3);
+    for(let j=0;j<n;j++){
+      const cube = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.7,1.5), cloudMat);
+      cube.position.set((Math.random()-0.5)*2.4, (Math.random()-0.5)*0.3, (Math.random()-0.5)*2.4);
+      cg.add(cube);
+    }
+    const ang = Math.random()*Math.PI*2, rad = 20+Math.random()*22;
+    cg.position.set(Math.cos(ang)*rad, 17+Math.random()*6, Math.sin(ang)*rad);
+    scene.add(cg);
+    clouds.push({ g:cg, speed:0.4+Math.random()*0.4 });
+  }
+
+  function applyEnvironment(){
+    if(night){
+      scene.background = new THREE.Color(0x241609);
+      scene.fog = new THREE.Fog(0x241609, 24, 62);
+      hemi.intensity = 0.4; hemi.color.set(0xffcf8a); hemi.groundColor.set(0x2a1f16);
+      sun.intensity = 0.35; sun.color.set(0xffb066);
+      groundMat.color.set(0x1a120a); courtyardMat.color.set(0x4a3a24);
+      cloudMat.color.set(0x3a4a5a);
+    } else {
+      scene.background = new THREE.Color(0xe9d6a8);
+      scene.fog = new THREE.Fog(0xe9d6a8, 30, 74);
+      hemi.intensity = 1.0; hemi.color.set(0xffffff); hemi.groundColor.set(0x7a6a4a);
+      sun.intensity = 1.2; sun.color.set(0xfff2d9);
+      groundMat.color.set(0x3a5a30); courtyardMat.color.set(0x8a7248);
+      cloudMat.color.set(0xf3ecd8);
+    }
+    Object.keys(roomLightMap).forEach(id=>{
+      roomLightMap[id].baseIntensity = doorOpenState[id] ? 1.9 : (night ? 1.0 : 0.3);
+    });
+  }
+
+  /* ================= TEXTURE HELPERS ================= */
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  }
+  function makeTextSprite(text, opts={}){
+    const { fontSize=54, color='#f3e9d8', bg='rgba(28,19,13,0.9)', border='#c9a227', width=440, height=130 } = opts;
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = bg; roundRect(ctx,4,4,width-8,height-8,18); ctx.fill();
+    ctx.strokeStyle = border; ctx.lineWidth = 5; roundRect(ctx,4,4,width-8,height-8,18); ctx.stroke();
+    ctx.fillStyle = color; ctx.font = `700 ${fontSize}px Georgia, serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, width/2, height/2+2);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.minFilter = THREE.LinearFilter;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false }));
+    sprite.scale.set(width/135, height/135, 1);
+    return sprite;
+  }
+
+  /* ================= ROOM BUILDER ================= */
+  const doorPivots = {};
+  const doorMeshes = [];
+  const roomLightMap = {};
+  const doorOpenState = {};
+  const flyTargets = {};
+
+  function createRoom(cfg, index){
+    const W = 7.4, D = 6.2, H = 3.3, wallT = 0.16, doorW = 1.75, doorH = 2.35;
+    const angle = index * (Math.PI*2/roomsConfig.length) - Math.PI/2;
+    const x = Math.cos(angle) * RADIUS;
+    const z = Math.sin(angle) * RADIUS;
+
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.lookAt(0, 0, 0);
+
+    const wallMat = new THREE.MeshStandardMaterial({ color:cfg.wallColor, roughness:0.92 });
+    const floorMat = new THREE.MeshStandardMaterial({ color:0x2e2013, roughness:0.9 });
+    const trimMat = new THREE.MeshStandardMaterial({ color:0xc9a227, roughness:0.4, metalness:0.4 });
+
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(W,0.2,D), floorMat);
+    floor.position.y = -0.1; floor.receiveShadow = true;
+    group.add(floor);
+
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(W,H,wallT), wallMat);
+    backWall.position.set(0,H/2,D/2); backWall.castShadow = true; backWall.receiveShadow = true;
+    group.add(backWall);
+
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallT,H,D), wallMat);
+    leftWall.position.set(-W/2,H/2,0); leftWall.castShadow = true; leftWall.receiveShadow = true;
+    group.add(leftWall);
+
+    const rightWall = leftWall.clone();
+    rightWall.position.x = W/2;
+    group.add(rightWall);
+
+    const segW = (W - doorW)/2;
+    const leftSeg = new THREE.Mesh(new THREE.BoxGeometry(segW,H,wallT), wallMat);
+    leftSeg.position.set(-W/2+segW/2, H/2, -D/2);
+    leftSeg.castShadow = true; leftSeg.receiveShadow = true;
+    group.add(leftSeg);
+
+    const rightSeg = leftSeg.clone();
+    rightSeg.position.x = W/2 - segW/2;
+    group.add(rightSeg);
+
+    const lintelH = H - doorH;
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(W,lintelH,wallT), wallMat);
+    lintel.position.set(0, doorH + lintelH/2, -D/2);
+    lintel.castShadow = true;
+    group.add(lintel);
+
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(W,0.1,wallT+0.02), trimMat);
+    trim.position.set(0, H-0.05, D/2);
+    group.add(trim);
+
+    // decorative lantern above the door
+    const lantern = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.24,0.14), new THREE.MeshStandardMaterial({ color:cfg.color, emissive:cfg.color, emissiveIntensity:0.9 }));
+    lantern.position.set(0, doorH-0.05, -D/2-0.13);
+    group.add(lantern);
+
+    const hingeX = -doorW/2;
+    const doorPivot = new THREE.Group();
+    doorPivot.position.set(hingeX, 0, -D/2);
+    const doorMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(doorW, doorH, 0.1),
+      new THREE.MeshStandardMaterial({ color:cfg.color, roughness:0.45, metalness:0.25, emissive:cfg.color, emissiveIntensity:0.4 })
+    );
+    doorMesh.position.set(doorW/2, doorH/2, 0);
+    doorMesh.castShadow = true;
+    doorMesh.userData = { roomId: cfg.id };
+    doorPivot.add(doorMesh);
+    group.add(doorPivot);
+    doorPivots[cfg.id] = doorPivot;
+    doorMeshes.push(doorMesh);
+    doorOpenState[cfg.id] = false;
+
+    const pLight = new THREE.PointLight(cfg.color, 1.0, 10, 2);
+    pLight.position.set(0, H-0.5, D/2-1.2);
+    pLight.baseIntensity = 1.0;
+    group.add(pLight);
+    roomLightMap[cfg.id] = pLight;
+
+    const label = makeTextSprite(cfg.label.toUpperCase(), { fontSize:44, width:340, height:104 });
+    label.scale.multiplyScalar(0.8);
+    label.position.set(0, H+0.85, -D/2-0.25);
+    group.add(label);
+
+    const n = cfg.plaques.length;
+    cfg.plaques.forEach((txt,i)=>{
+      const spacing = W/(n+1);
+      const px = -W/2 + spacing*(i+1);
+      const plaque = makeTextSprite(txt, { fontSize:32, width:280, height:100 });
+      plaque.scale.set(1.35, 0.48, 1);
+      plaque.position.set(px, H*0.58, D/2-0.1);
+      group.add(plaque);
+    });
+
+    if(cfg.id === 'about'){
+      const loader = new THREE.TextureLoader();
+      loader.load('dp.png', (tex)=>{
+        const frameGeo = new THREE.PlaneGeometry(1.5, 1.85);
+        const frameMat = new THREE.MeshStandardMaterial({ map:tex, roughness:0.6 });
+        const photo = new THREE.Mesh(frameGeo, frameMat);
+        photo.position.set(0, H*0.6, D/2-0.09);
+        photo.rotation.y = Math.PI;
+        group.add(photo);
+        const border = new THREE.Mesh(new THREE.PlaneGeometry(1.66,2.01), new THREE.MeshStandardMaterial({color:0xc9a227, roughness:0.4, metalness:0.3}));
+        border.position.set(0, H*0.6, D/2-0.11);
+        border.rotation.y = Math.PI;
+        group.add(border);
+      });
+    }
+
+    scene.add(group);
+
+    flyTargets[cfg.id] = {
+      pos: new THREE.Vector3(x*0.42, 3.1, z*0.42),
+      look: new THREE.Vector3(x*0.85, 1.3, z*0.85)
+    };
+  }
+
+  roomsConfig.forEach((cfg,i)=> createRoom(cfg,i));
+
+  /* ================= VOXEL AVATAR "VISHAL" (Minecraft-style, walk-cycle animated) ================= */
+  const avatarParts = {};
+  const avatar = (function buildAvatar(){
+    const g = new THREE.Group();
+    const skin = new THREE.MeshStandardMaterial({ color:0xc9a227, roughness:0.75 });
+    const shirt = new THREE.MeshStandardMaterial({ color:0x8b3a3a, roughness:0.8 });
+    const pants = new THREE.MeshStandardMaterial({ color:0x3a332a, roughness:0.8 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color:0x1a1208 });
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), skin);
+    head.position.y = 1.72; head.castShadow = true;
+    g.add(head);
+
+    const eyeGeo = new THREE.PlaneGeometry(0.07,0.07);
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.12,1.76,0.251); g.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = 0.12; g.add(eyeR);
+    const mouth = new THREE.Mesh(new THREE.PlaneGeometry(0.18,0.045), eyeMat);
+    mouth.position.set(0,1.62,0.251); g.add(mouth);
+
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.72,0.28), shirt);
+    torso.position.y = 1.1; torso.castShadow = true;
+    g.add(torso);
+
+    const plate = makeTextSprite('V', { fontSize:76, width:150, height:150, border:'#8b3a3a' });
+    plate.scale.set(0.24,0.24,1);
+    plate.position.set(0,1.16,0.155);
+    g.add(plate);
+
+    const armGeo = new THREE.BoxGeometry(0.22,0.62,0.22);
+    const armPivotL = new THREE.Group(); armPivotL.position.set(-0.36,1.42,0);
+    const armMeshL = new THREE.Mesh(armGeo, skin); armMeshL.position.y = -0.31; armMeshL.castShadow = true;
+    armPivotL.add(armMeshL); g.add(armPivotL);
+    const armPivotR = new THREE.Group(); armPivotR.position.set(0.36,1.42,0);
+    const armMeshR = new THREE.Mesh(armGeo, skin); armMeshR.position.y = -0.31; armMeshR.castShadow = true;
+    armPivotR.add(armMeshR); g.add(armPivotR);
+
+    const legGeo = new THREE.BoxGeometry(0.24,0.66,0.24);
+    const legPivotL = new THREE.Group(); legPivotL.position.set(-0.13,0.72,0);
+    const legMeshL = new THREE.Mesh(legGeo, pants); legMeshL.position.y = -0.33; legMeshL.castShadow = true;
+    legPivotL.add(legMeshL); g.add(legPivotL);
+    const legPivotR = new THREE.Group(); legPivotR.position.set(0.13,0.72,0);
+    const legMeshR = new THREE.Mesh(legGeo, pants); legMeshR.position.y = -0.33; legMeshR.castShadow = true;
+    legPivotR.add(legMeshR); g.add(legPivotR);
+
+    const nameTag = makeTextSprite('VISHAL', { fontSize:40, width:260, height:88 });
+    nameTag.scale.set(1.1,0.37,1);
+    nameTag.position.set(0,2.28,0);
+    g.add(nameTag);
+
+    g.position.set(0, 0, 4.6);
+    scene.add(g);
+
+    avatarParts.armPivotL = armPivotL; avatarParts.armPivotR = armPivotR;
+    avatarParts.legPivotL = legPivotL; avatarParts.legPivotR = legPivotR;
+    return g;
+  })();
+  const avatarMeshes = [];
+  avatar.traverse(o=>{ if(o.isMesh) avatarMeshes.push(o); });
+
+  applyEnvironment();
+
+  /* ================= CAMERA / ANIMATION HELPERS ================= */
+  let camAnimId = null;
+  function flyCamera(pos, look, duration=900){
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const t0 = performance.now();
+    controls.enabled = false;
+    if(camAnimId) cancelAnimationFrame(camAnimId);
+    function step(now){
+      const t = Math.min(1, (now-t0)/duration);
+      const e = t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+      camera.position.lerpVectors(startPos,pos,e);
+      controls.target.lerpVectors(startTarget,look,e);
+      controls.update();
+      if(t<1){ camAnimId = requestAnimationFrame(step); } else { controls.enabled = true; camAnimId=null; }
+    }
+    camAnimId = requestAnimationFrame(step);
+  }
+
+  function animateDoor(id, opening){
+    const pivot = doorPivots[id];
+    const start = pivot.rotation.y;
+    const end = opening ? -2.05 : 0;
+    const t0 = performance.now(), duration = 650;
+    function step(now){
+      const t = Math.min(1,(now-t0)/duration);
+      const e = 1-Math.pow(1-t,3);
+      pivot.rotation.y = start + (end-start)*e;
+      if(t<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ================= PANEL ================= */
+  const panel = document.getElementById('room-panel');
+  const panelOverlay = document.getElementById('panel-overlay');
+  const panelTitle = document.getElementById('panel-title');
+  const panelBody = document.getElementById('panel-body');
+  const panelEyebrow = document.getElementById('panel-eyebrow');
+  const hint = document.getElementById('hint');
+  let activeRoom = null;
+
+  function setActiveNav(id){
+    document.querySelectorAll('.nav-btn').forEach(b=> b.classList.toggle('active', b.dataset.room===id));
+  }
+  function showPanel(id){
+    const c = CONTENT[id];
+    panelEyebrow.innerHTML = `<i class="fas ${c.icon}"></i> ${id==='vishal' ? 'Say Hello' : 'Room'}`;
+    panelTitle.textContent = c.label;
+    panelBody.innerHTML = c.render();
+    panel.classList.add('show');
+    panelOverlay.classList.add('show');
+    requestAnimationFrame(()=>{
+      panelBody.querySelectorAll('.bar-fill').forEach(el=> el.style.width = el.dataset.pct+'%');
+    });
+  }
+  function hidePanel(){ panel.classList.remove('show'); panelOverlay.classList.remove('show'); }
+
+  function openRoom(id){
+    if(activeRoom === id) return;
+    if(activeRoom){ animateDoor(activeRoom,false); doorOpenState[activeRoom]=false; roomLightMap[activeRoom].baseIntensity = night?1.0:0.3; }
+    activeRoom = id;
+    animateDoor(id, true);
+    doorOpenState[id] = true;
+    roomLightMap[id].baseIntensity = 1.9;
+    flyCamera(flyTargets[id].pos, flyTargets[id].look);
+    showPanel(id);
+    setActiveNav(id);
+    hint.classList.add('hidden');
+  }
+  function openVishal(){
+    flyCamera(new THREE.Vector3(0,2.6,8.2), new THREE.Vector3(0,1.4,4.6), 900);
+    showPanel('vishal');
+    setActiveNav(null);
+    hint.classList.add('hidden');
+  }
+  function closeAll(){
+    if(activeRoom){
+      animateDoor(activeRoom,false);
+      doorOpenState[activeRoom]=false;
+      roomLightMap[activeRoom].baseIntensity = night?1.0:0.3;
+      activeRoom = null;
+    }
+    flyCamera(DEFAULT_POS, DEFAULT_LOOK);
+    hidePanel();
+    setActiveNav(null);
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(btn=> btn.addEventListener('click', ()=> openRoom(btn.dataset.room)));
+  document.getElementById('panel-close').addEventListener('click', closeAll);
+  panelOverlay.addEventListener('click', closeAll);
+  document.getElementById('brand-reset').addEventListener('click', (e)=>{ e.preventDefault(); if(entered) closeAll(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && entered) closeAll(); });
+
+  const daynightBtn = document.getElementById('daynight-toggle');
+  daynightBtn.addEventListener('click', ()=>{
+    night = !night;
+    applyEnvironment();
+    daynightBtn.innerHTML = night ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+  });
+
+  /* ================= INTRO CINEMATIC PAN ================= */
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+      document.getElementById('loader').classList.add('hide');
+      flyCamera(EXTERIOR_POS, EXTERIOR_LOOK, 3200);
+      setTimeout(()=> document.getElementById('pre-entry').classList.add('show'), 3000);
+    }, 500);
+  });
+  setTimeout(()=>{
+    if(!document.getElementById('loader').classList.contains('hide')){
+      document.getElementById('loader').classList.add('hide');
+      flyCamera(EXTERIOR_POS, EXTERIOR_LOOK, 3200);
+      setTimeout(()=> document.getElementById('pre-entry').classList.add('show'), 3000);
+    }
+  }, 2800);
+
+  /* ================= ENTRY / EXIT SEQUENCE (loops back to the gate) ================= */
+  document.getElementById('enter-btn').addEventListener('click', enterVilla);
+  document.getElementById('exit-btn').addEventListener('click', exitVilla);
+
+  function enterVilla(){
+    if(entered) return;
+    entered = true;
+    openGate();
+    enterSign.visible = false;
+    controls.enableZoom = true;
+    controls.maxDistance = OUTER_R*0.95; // scrolling only works, and only stays, inside the walls
+    flyCamera(DEFAULT_POS, DEFAULT_LOOK, 1900);
+    document.getElementById('pre-entry').classList.add('hidden');
+    document.getElementById('room-nav').classList.remove('hidden');
+    document.getElementById('top-actions').classList.remove('hidden');
+    setTimeout(()=>{ hint.classList.remove('hidden'); }, 1800);
+  }
+
+  function exitVilla(){
+    if(!entered) return;
+    closeAll();
+    entered = false;
+    closeGate();
+    controls.enableZoom = false;
+    controls.maxDistance = 55;
+    enterSign.visible = true;
+    flyCamera(EXTERIOR_POS, EXTERIOR_LOOK, 1900);
+    document.getElementById('room-nav').classList.add('hidden');
+    document.getElementById('top-actions').classList.add('hidden');
+    hint.classList.add('hidden');
+    setTimeout(()=>{ document.getElementById('pre-entry').classList.remove('hidden'); }, 1700);
+  }
+
+  /* ================= WASD / ARROW-KEY WALK CONTROLS ================= */
+  const keys = {};
+  window.addEventListener('keydown', (e)=>{ keys[e.key.toLowerCase()] = true; });
+  window.addEventListener('keyup', (e)=>{ keys[e.key.toLowerCase()] = false; });
+  let isWalking = false;
+  function updateWalk(delta){
+    if(!entered){ isWalking = false; return; }
+    const forward = new THREE.Vector3().subVectors(controls.target, camera.position); forward.y = 0;
+    if(forward.lengthSq() < 0.0001) return;
+    forward.normalize();
+    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
+    let mx = 0, mz = 0;
+    if(keys['w']||keys['arrowup']){ mx += forward.x; mz += forward.z; }
+    if(keys['s']||keys['arrowdown']){ mx -= forward.x; mz -= forward.z; }
+    if(keys['a']||keys['arrowleft']){ mx -= right.x; mz -= right.z; }
+    if(keys['d']||keys['arrowright']){ mx += right.x; mz += right.z; }
+    isWalking = (mx !== 0 || mz !== 0);
+    if(isWalking){
+      const len = Math.hypot(mx,mz) || 1;
+      const speed = 7*delta;
+      const dx = (mx/len)*speed, dz = (mz/len)*speed;
+      const nx = camera.position.x+dx, nz = camera.position.z+dz;
+      if(Math.hypot(nx,nz) < OUTER_R*1.35){
+        camera.position.x = nx; camera.position.z = nz;
+        controls.target.x += dx; controls.target.z += dz;
+      }
+    }
+  }
+
+  /* ================= RAYCAST INTERACTION ================= */
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  function setMouseFromEvent(e){
+    const rect = renderer.domElement.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    mouse.x = ((cx-rect.left)/rect.width)*2-1;
+    mouse.y = -((cy-rect.top)/rect.height)*2+1;
+  }
+  renderer.domElement.addEventListener('click', (e)=>{
+    setMouseFromEvent(e);
+    raycaster.setFromCamera(mouse, camera);
+
+    if(!entered){
+      const gateHit = raycaster.intersectObjects([gateDoorMesh, enterSign]);
+      if(gateHit.length) enterVilla();
+      return;
+    }
+
+    const botHits = raycaster.intersectObjects(avatarMeshes);
+    if(botHits.length){ openVishal(); return; }
+
+    const hits = raycaster.intersectObjects(doorMeshes);
+    if(hits.length){
+      const id = hits[0].object.userData.roomId;
+      if(activeRoom === id) closeAll(); else openRoom(id);
+    }
+  });
+  renderer.domElement.addEventListener('mousemove', (e)=>{
+    setMouseFromEvent(e);
+    raycaster.setFromCamera(mouse, camera);
+    const targets = entered ? doorMeshes.concat(avatarMeshes) : [gateDoorMesh, enterSign];
+    const hits = raycaster.intersectObjects(targets);
+    renderer.domElement.style.cursor = hits.length ? 'pointer' : 'grab';
+  });
+
+  /* ================= RESIZE / RENDER LOOP ================= */
+  window.addEventListener('resize', ()=>{
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  const clock = new THREE.Clock();
+  let elapsed = 0;
+  function animate(){
+    requestAnimationFrame(animate);
+    const delta = Math.min(clock.getDelta(), 0.05);
+    elapsed += delta;
+
+    updateWalk(delta);
+
+    // avatar walk-cycle: swings when the visitor is walking, gentle idle sway otherwise
+    const walkT = elapsed*6;
+    const swing = isWalking ? Math.sin(walkT)*0.55 : Math.sin(elapsed*1.4)*0.08;
+    avatarParts.armPivotL.rotation.x = swing;
+    avatarParts.armPivotR.rotation.x = -swing;
+    avatarParts.legPivotL.rotation.x = -swing;
+    avatarParts.legPivotR.rotation.x = swing;
+    avatar.position.y = Math.abs(Math.sin(walkT))*(isWalking?0.05:0.015);
+    avatar.rotation.y = Math.sin(elapsed*0.45)*0.15;
+
+    // fountain shimmer
+    water.material.emissiveIntensity = 0.3 + Math.sin(elapsed*2)*0.12;
+
+    // lantern flicker
+    Object.values(roomLightMap).forEach((light,i)=>{
+      light.intensity = (light.baseIntensity||1) + Math.sin(elapsed*3 + i*1.7)*0.06;
+    });
+
+    // clouds drifting
+    clouds.forEach(c=>{
+      c.g.position.x += c.speed*delta*3;
+      if(c.g.position.x > 70) c.g.position.x = -70;
+    });
+
+    // trees swaying gently
+    treeSpots.forEach((t,i)=>{ t.rotation.z = Math.sin(elapsed*1.1+i)*0.025; });
+
+    // ENTER sign gently pulsing while the gate is still closed
+    if(enterSign.visible){
+      const pulse = 1 + Math.sin(elapsed*2.4)*0.06;
+      enterSign.scale.set((280/135)*pulse, (96/135)*pulse, 1);
+    }
+
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+})();
+</script>
+</body>
+</html>
