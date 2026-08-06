@@ -167,7 +167,7 @@
   </div>
 </div>
 
-<div id="hint" class="hidden"><i class="fas fa-hand-pointer"></i> Drag to look, scroll to zoom, WASD to walk · Click a door or Vishal · Exit via the top-right button</div>
+<div id="hint" class="hidden"><i class="fas fa-hand-pointer"></i> Drag to look, scroll to zoom, WASD to walk · Click the button on any door for About, Skills, Projects, Experience, or Contact · Exit via the top-right button</div>
 
 <div id="panel-overlay"></div>
 <aside id="room-panel">
@@ -547,6 +547,7 @@
   /* ================= ROOM BUILDER ================= */
   const doorPivots = {};
   const doorMeshes = [];
+  const doorButtonMeshes = [];
   const roomLightMap = {};
   const doorOpenState = {};
   const flyTargets = {};
@@ -616,6 +617,22 @@
     doorMesh.position.set(doorW/2, doorH/2, 0);
     doorMesh.castShadow = true;
     doorMesh.userData = { roomId: cfg.id };
+
+    const doorButton = new THREE.Mesh(
+      new THREE.BoxGeometry(0.42, 0.42, 0.08),
+      new THREE.MeshStandardMaterial({ color:0x241a12, roughness:0.2, metalness:0.3, emissive:0x8b3a3a, emissiveIntensity:0.08 })
+    );
+    doorButton.position.set(doorW*0.34, doorH*0.92, 0.06);
+    doorButton.castShadow = true;
+    doorButton.userData = { roomId: cfg.id, isDoorButton: true };
+    doorMesh.add(doorButton);
+    doorButtonMeshes.push(doorButton);
+
+    const doorButtonLabel = makeTextSprite(cfg.label.toUpperCase(), { fontSize:30, width:220, height:90, border:'#c9a227' });
+    doorButtonLabel.scale.set(0.16, 0.12, 1);
+    doorButtonLabel.position.set(doorW*0.34, doorH*0.92, 0.12);
+    doorMesh.add(doorButtonLabel);
+
     doorPivot.add(doorMesh);
     group.add(doorPivot);
     doorPivots[cfg.id] = doorPivot;
@@ -771,6 +788,7 @@
   const panelEyebrow = document.getElementById('panel-eyebrow');
   const hint = document.getElementById('hint');
   let activeRoom = null;
+  let hoveredButton = null;
 
   function setActiveNav(id){
     document.querySelectorAll('.nav-btn').forEach(b=> b.classList.toggle('active', b.dataset.room===id));
@@ -932,7 +950,7 @@
     const botHits = raycaster.intersectObjects(avatarMeshes);
     if(botHits.length){ openVishal(); return; }
 
-    const hits = raycaster.intersectObjects(doorMeshes);
+    const hits = raycaster.intersectObjects(doorMeshes.concat(doorButtonMeshes));
     if(hits.length){
       const id = hits[0].object.userData.roomId;
       if(activeRoom === id) closeAll(); else openRoom(id);
@@ -941,8 +959,17 @@
   renderer.domElement.addEventListener('mousemove', (e)=>{
     setMouseFromEvent(e);
     raycaster.setFromCamera(mouse, camera);
-    const targets = entered ? doorMeshes.concat(avatarMeshes) : [gateDoorMesh, enterSign];
+    const targets = entered ? doorMeshes.concat(doorButtonMeshes, avatarMeshes) : [gateDoorMesh, enterSign];
     const hits = raycaster.intersectObjects(targets);
+    const nextHover = hits.length ? hits[0].object : null;
+    if(hoveredButton && hoveredButton !== nextHover){
+      hoveredButton.material.emissiveIntensity = 0.08;
+      hoveredButton = null;
+    }
+    if(nextHover && nextHover.userData.isDoorButton){
+      nextHover.material.emissiveIntensity = 0.8;
+      hoveredButton = nextHover;
+    }
     renderer.domElement.style.cursor = hits.length ? 'pointer' : 'grab';
   });
 
